@@ -72,7 +72,8 @@ ${market_summary}`;
             return new Response(JSON.stringify({ reply: data.choices[0].message.content }), { headers: CORS });
         } else {
             const text = await resp.text();
-            return new Response(JSON.stringify({ reply: `大模型接口请求失败: HTTP ${resp.status}\n\`\`\`json\n${text}\n\`\`\`` }), { headers: CORS });
+            console.log(`AI API error: HTTP ${resp.status} - ${text}`);
+            return new Response(JSON.stringify({ reply: 'AI 分析服务暂时不可用，请稍后重试', error: true }), { headers: CORS });
         }
     } catch (e) {
         return new Response(JSON.stringify({ reply: `大模型网络请求异常: ${e.message}` }), { headers: CORS });
