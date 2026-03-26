@@ -7,7 +7,7 @@ export async function onRequestGet({ request }) {
         const period = url.searchParams.get('period') || '5m';
         const limit = url.searchParams.get('limit') || '30';
         const contractType = url.searchParams.get('contractType') || 'PERPETUAL';
-        const res = await fetch(`https://fapi.binance.com/futures/data/basis?symbol=${symbol}&period=${period}&limit=${limit}&contractType=${contractType}`);
+        const res = await fetch(`https://fapi.binance.com/futures/data/basis?pair=${symbol}&period=${period}&limit=${limit}&contractType=${contractType}`);
         const data = await res.json();
         return new Response(JSON.stringify(Array.isArray(data) ? data : []), { headers: CORS });
     } catch (e) {

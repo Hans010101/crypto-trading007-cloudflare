@@ -2654,7 +2654,6 @@
         renderOI(oi); renderRatio('ls-chart-top-account', 'ls-val-top-account', topAcc);
         renderRatio('ls-chart-top-position', 'ls-val-top-position', topPos);
         renderRatio('ls-chart-global-ls', 'ls-val-global-ls', globalLS);
-        console.log('[LS] Data loaded - basis:', Array.isArray(basis) ? basis.length + ' items' : typeof basis);
         renderTaker(taker); renderBasis(basis); triggerLSAI();
       } catch(e) { console.error('LS load err', e); }
     }
@@ -2794,7 +2793,6 @@
     }
 
     function renderBasis(data) {
-      console.log('[LS] renderBasis called, data:', Array.isArray(data) ? data.length + ' items' : typeof data, data && data[0] ? JSON.stringify(data[0]).substring(0,100) : 'empty');
       if (!Array.isArray(data) || !data.length) return;
       var cv = _cv('ls-chart-basis'); var ctx = cv.ctx; var w = cv.w; var h = cv.h;
       var pad = { l: 65, r: 65, t: 25, b: 28 };

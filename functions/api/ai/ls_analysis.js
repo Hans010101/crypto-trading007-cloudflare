@@ -12,7 +12,7 @@ export async function onRequestGet({ request }) {
       fetch(`${base}/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=30`).then(r=>r.ok?r.json():[]).catch(()=>[]),
       fetch(`${base}/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=30`).then(r=>r.ok?r.json():[]).catch(()=>[]),
       fetch(`${base}/takerlongshortRatio?symbol=${symbol}&period=5m&limit=30`).then(r=>r.ok?r.json():[]).catch(()=>[]),
-      fetch(`${base}/basis?symbol=${symbol}&period=5m&limit=30&contractType=PERPETUAL`).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch(`${base}/basis?pair=${symbol}&period=5m&limit=30&contractType=PERPETUAL`).then(r=>r.ok?r.json():[]).catch(()=>[]),
     ]);
     const [oi, topAcc, topPos, globalLS, taker, basis] = results;
 
