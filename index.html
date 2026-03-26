@@ -2076,7 +2076,8 @@
       if (lsLoading || !allData || allData.length === 0) return;
       lsLoading = true;
       try {
-        const symbols = allData.map(t => t.symbol.replace('/USDT', 'USDT'));
+        const sorted = [...allData].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+        const symbols = sorted.map(t => t.symbol.replace('/USDT', 'USDT'));
         const BATCH = 45;
         for (let i = 0; i < symbols.length; i += BATCH * 2) {
           const batch1 = symbols.slice(i, i + BATCH);
@@ -2105,7 +2106,8 @@
       if (oiLoading || !allData || allData.length === 0) return;
       oiLoading = true;
       try {
-        const symbols = allData.map(t => t.symbol.replace('/USDT', 'USDT'));
+        const sorted = [...allData].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+        const symbols = sorted.map(t => t.symbol.replace('/USDT', 'USDT'));
         const BATCH = 45;
         for (let i = 0; i < symbols.length; i += BATCH * 2) {
           const batch1 = symbols.slice(i, i + BATCH);
@@ -2717,8 +2719,14 @@
       items.forEach(function(it) { ctx.fillStyle = it[1]; ctx.fillText(it[0], cx, y); cx += ctx.measureText(it[0]).width + 12; });
     }
 
+    function _noData(id) {
+      var cv = _cv(id); var ctx = cv.ctx;
+      ctx.fillStyle = '#9ca3af'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('该币种暂无此数据', cv.w / 2, cv.h / 2);
+    }
+
     function renderOI(data) {
-      if (!Array.isArray(data) || !data.length) return;
+      if (!Array.isArray(data) || !data.length) { _noData('ls-chart-oi'); return; }
       var cv = _cv('ls-chart-oi'); var ctx = cv.ctx; var w = cv.w; var h = cv.h;
       var pad = { l: 60, r: 65, t: 25, b: 28 };
       var labels = data.map(function(d){return _fT(d.timestamp);});
@@ -2737,7 +2745,7 @@
     }
 
     function renderRatio(canvasId, valId, data) {
-      if (!Array.isArray(data) || !data.length) return;
+      if (!Array.isArray(data) || !data.length) { _noData(canvasId); return; }
       var cv = _cv(canvasId); var ctx = cv.ctx; var w = cv.w; var h = cv.h;
       var pad = { l: 45, r: 50, t: 25, b: 28 };
       var pw = w - pad.l - pad.r; var ph = h - pad.t - pad.b;
@@ -2771,7 +2779,7 @@
     }
 
     function renderTaker(data) {
-      if (!Array.isArray(data) || !data.length) return;
+      if (!Array.isArray(data) || !data.length) { _noData('ls-chart-taker'); return; }
       var cv = _cv('ls-chart-taker'); var ctx = cv.ctx; var w = cv.w; var h = cv.h;
       var pad = { l: 55, r: 12, t: 25, b: 28 };
       var pw = w - pad.l - pad.r; var ph = h - pad.t - pad.b;
@@ -2793,7 +2801,7 @@
     }
 
     function renderBasis(data) {
-      if (!Array.isArray(data) || !data.length) return;
+      if (!Array.isArray(data) || !data.length) { _noData('ls-chart-basis'); return; }
       var cv = _cv('ls-chart-basis'); var ctx = cv.ctx; var w = cv.w; var h = cv.h;
       var pad = { l: 65, r: 65, t: 25, b: 28 };
       var pw = w - pad.l - pad.r; var ph = h - pad.t - pad.b;
