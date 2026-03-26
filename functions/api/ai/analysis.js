@@ -13,12 +13,17 @@ export async function onRequestGet(context) {
         return new Response(JSON.stringify({ analysis: '请指定交易对参数。' }), { headers: CORS });
     }
     try {
+        async function safeJson(res, fallback) {
+            try { const t = await res.text(); return JSON.parse(t); } catch(e) { return fallback; }
+        }
         const [tickerRes, fundingRes, lsRes] = await Promise.all([
             fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbolParam}`),
             fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbolParam}`),
             fetch(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbolParam}&period=5m&limit=1`),
         ]);
-        const [ticker, funding, lsData] = await Promise.all([tickerRes.json(), fundingRes.json(), lsRes.json()]);
+        const [ticker, funding, lsData] = await Promise.all([
+            safeJson(tickerRes, {}), safeJson(fundingRes, {}), safeJson(lsRes, [])
+        ]);
         const price = parseFloat(ticker.lastPrice || 0);
         const change = parseFloat(ticker.priceChangePercent || 0);
         const vol = parseFloat(ticker.quoteVolume || 0);
