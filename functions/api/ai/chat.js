@@ -61,8 +61,11 @@ export async function onRequestPost(context) {
 
 ${market_summary}`;
 
+    const finalUrl = `${apiBase}/chat/completions`;
+    console.log('chat.js DEBUG: url=', finalUrl, 'model=', model, 'apiKey prefix=', apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING');
+
     try {
-        const resp = await fetch(`${apiBase}/chat/completions`, {
+        const resp = await fetch(finalUrl, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ model, messages: [{ role: 'system', content: system_prompt }, { role: 'user', content: message }] }),
@@ -72,11 +75,12 @@ ${market_summary}`;
             return new Response(JSON.stringify({ reply: data.choices[0].message.content }), { headers: CORS });
         } else {
             const text = await resp.text();
-            console.log(`AI API error: HTTP ${resp.status} - ${text}`);
-            return new Response(JSON.stringify({ reply: 'AI 分析服务暂时不可用，请稍后重试', error: true }), { headers: CORS });
+            console.log('chat.js AI API error:', resp.status, text);
+            return new Response(JSON.stringify({ reply: `AI 调试: HTTP ${resp.status} | URL: ${finalUrl} | Body: ${text.substring(0, 500)}`, error: true }), { headers: CORS });
         }
     } catch (e) {
-        return new Response(JSON.stringify({ reply: `大模型网络请求异常: ${e.message}` }), { headers: CORS });
+        console.log('chat.js catch error:', e.message, e.stack);
+        return new Response(JSON.stringify({ reply: `AI 调试 catch: ${e.message}`, error: true }), { headers: CORS });
     }
 }
 export async function onRequestOptions() { return new Response(null, { headers: { ...CORS, 'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' } }); }
