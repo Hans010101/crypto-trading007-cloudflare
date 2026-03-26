@@ -2648,7 +2648,7 @@
           safeFetch('/api/binance/top_ls_position?symbol=' + sym),
           safeFetch('/api/binance/global_ls?symbol=' + sym),
           safeFetch('/api/binance/taker_volume?symbol=' + sym),
-          safeFetch('/api/binance/basis?symbol=' + sym)
+          safeFetch('/api/binance/basis?symbol=' + sym + '&contractType=PERPETUAL')
         ]);
         _lsRawData = { oi: oi, topAcc: topAcc, topPos: topPos, globalLS: globalLS, taker: taker, basis: basis };
         renderOI(oi); renderRatio('ls-chart-top-account', 'ls-val-top-account', topAcc);
@@ -2828,13 +2828,10 @@
       var el = document.getElementById('ls-ai-content');
       el.innerHTML = '<div class="ls-loading">分析生成中</div>';
       try {
-        var resp = await fetch('/api/ai/chat', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: '请根据以下' + _lsSymbol + '合约数据给出多空博弈分析（简明扼要）：\n' + JSON.stringify(_lsRawData).substring(0, 2000) })
-        });
+        var resp = await fetch('/api/ai/ls_analysis?symbol=' + encodeURIComponent(_lsSymbol));
         var result = await resp.json();
-        el.innerHTML = result.reply || '<span style="color:' + _C.red + '">分析生成失败</span>';
-      } catch(e) { el.innerHTML = '<span style="color:' + _C.red + '">AI 服务连接失败</span>'; }
+        el.innerHTML = result.analysis || '<span style="color:' + _C.red + '">分析生成失败</span>';
+      } catch(e) { el.innerHTML = '<span style="color:' + _C.red + '">分析服务连接失败</span>'; }
     }
   </script>
 
