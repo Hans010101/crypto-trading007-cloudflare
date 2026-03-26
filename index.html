@@ -1297,14 +1297,14 @@
     }
     .ls-modal-header .actions button:hover { color: var(--text-primary); border-color: var(--accent); }
     .ls-modal-body { display: flex; flex: 1; overflow: hidden; }
-    .ls-charts-panel { flex: 7; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 6px; padding: 6px; overflow: hidden; background: #f3f4f6; }
+    .ls-charts-panel { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 6px; padding: 6px; overflow: hidden; background: #f3f4f6; }
     .ls-chart-cell { background: #ffffff; display: flex; flex-direction: column; overflow: hidden; position: relative; border-radius: 8px; border: 1px solid #e5e7eb; }
     .ls-chart-cell .cell-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px 0; }
     .ls-chart-cell .cell-title { font-size: 13px; color: #1f2937; font-weight: 600; }
     .ls-chart-cell .cell-value { font-size: 14px; font-weight: 700; font-family: 'SF Mono', 'Consolas', monospace; }
     .ls-chart-cell canvas { flex: 1; width: 100%; }
     .ls-ai-panel {
-      flex: 3; border-left: 1px solid #e5e7eb; padding: 1.2rem;
+      flex: 0 0 330px; border-left: 1px solid #e5e7eb; padding: 1.2rem;
       overflow-y: auto; background: #f8fafc;
     }
     .ls-ai-panel h3 { margin: 0 0 0.8rem; font-size: 1rem; color: #1f2937; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.6rem; }
@@ -1316,7 +1316,7 @@
     @media (max-width: 900px) {
       .ls-modal-body { flex-direction: column; }
       .ls-charts-panel { flex: none; height: 60vh; grid-template-columns: 1fr; grid-template-rows: repeat(6, 1fr); }
-      .ls-ai-panel { flex: none; height: 40vh; border-left: none; border-top: 1px solid #e5e7eb; }
+      .ls-ai-panel { flex: none; width: auto; height: 40vh; border-left: none; border-top: 1px solid #e5e7eb; }
     }
   </style>
 </head>
