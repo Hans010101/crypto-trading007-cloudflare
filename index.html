@@ -2058,15 +2058,23 @@
     });
 
     // mergeGlobalCaches: apply persisted L/S + OI data to ticker array
+    function _normSym(s) { return s.replace('/', '').toUpperCase(); }
     function mergeGlobalCaches(data) {
       if (!data) return;
+      var lsMatched = 0, oiMatched = 0;
       for (const t of data) {
-        const key = t.symbol.replace('/USDT', 'USDT');
-        if (lsGlobalCache[key]) t.lsRatio = lsGlobalCache[key];
+        const key = _normSym(t.symbol);
+        if (lsGlobalCache[key]) { t.lsRatio = lsGlobalCache[key]; lsMatched++; }
         if (oiGlobalCache[key]) {
           t.oiChange24h = oiGlobalCache[key].change;
           t.oiValue = oiGlobalCache[key].value;
+          oiMatched++;
         }
+      }
+      if (Object.keys(lsGlobalCache).length > 0 || Object.keys(oiGlobalCache).length > 0) {
+        console.log('[MERGE] LS matched:', lsMatched, '/', data.length, '| OI matched:', oiMatched,
+          '| cache keys sample:', Object.keys(lsGlobalCache).slice(0,3),
+          '| data symbols sample:', data.slice(0,3).map(t => t.symbol + ' → ' + _normSym(t.symbol)));
       }
     }
 
@@ -2077,7 +2085,7 @@
       lsLoading = true;
       try {
         const sorted = [...allData].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
-        const symbols = sorted.map(t => t.symbol.replace('/USDT', 'USDT'));
+        const symbols = sorted.map(t => _normSym(t.symbol));
         const BATCH = 45;
         for (let i = 0; i < symbols.length; i += BATCH * 2) {
           const batch1 = symbols.slice(i, i + BATCH);
@@ -2107,7 +2115,7 @@
       oiLoading = true;
       try {
         const sorted = [...allData].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
-        const symbols = sorted.map(t => t.symbol.replace('/USDT', 'USDT'));
+        const symbols = sorted.map(t => _normSym(t.symbol));
         const BATCH = 45;
         for (let i = 0; i < symbols.length; i += BATCH * 2) {
           const batch1 = symbols.slice(i, i + BATCH);
