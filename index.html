@@ -2844,7 +2844,15 @@
       if (d.basis && d.basis.length) { var l=d.basis[d.basis.length-1]; s += '基差率: '+(parseFloat(l.basisRate)*100).toFixed(4)+'% (合约$'+parseFloat(l.futuresPrice).toFixed(2)+'/指数$'+parseFloat(l.indexPrice).toFixed(2)+')\n'; }
       try {
         var resp = await fetch('/api/ai/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: '请根据以下'+_lsSymbol+'合约的实时多空博弈数据，给出专业分析：\n'+s+'\n要求：1)分析多空力量对比 2)识别异常信号 3)给出短线操作建议 4)风险提示。用中文回答，简明扼要。'}) });
+        if (!resp.ok) {
+          el.innerHTML = '<span style="color:#f39c12">⚠️ AI 分析服务暂时不可用（HTTP ' + resp.status + '），请稍后重试</span>';
+          return;
+        }
         var result = await resp.json();
+        if (result.error) {
+          el.innerHTML = '<span style="color:#f39c12">⚠️ ' + (result.reply || 'AI 分析服务暂时不可用') + '</span>';
+          return;
+        }
         el.innerHTML = result.reply || '<span style="color:' + _C.red + '">分析生成失败</span>';
       } catch(e) { el.innerHTML = '<span style="color:' + _C.red + '">AI 服务连接失败</span>'; }
     }
