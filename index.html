@@ -2832,29 +2832,114 @@
       el.style.color = lastBR >= 0 ? _C.green : _C.red; el.textContent = lastBR.toFixed(4) + '%';
     }
 
-    async function triggerLSAI() {
+    function triggerLSAI() {
       var el = document.getElementById('ls-ai-content');
-      el.innerHTML = '<div class="ls-loading">分析生成中</div>';
-      var d = _lsRawData; var s = _lsSymbol + ' 最近30个5分钟周期数据摘要:\n';
-      if (d.oi && d.oi.length) { var L=d.oi[d.oi.length-1],F=d.oi[0]; s += '持仓量: '+parseFloat(L.sumOpenInterest).toFixed(0)+' (价值$'+(parseFloat(L.sumOpenInterestValue)/1e6).toFixed(1)+'M), 变化: '+((parseFloat(L.sumOpenInterest)/parseFloat(F.sumOpenInterest)-1)*100).toFixed(2)+'%\n'; }
-      if (d.topAcc && d.topAcc.length) { var l=d.topAcc[d.topAcc.length-1]; s += '大户账户多空比: '+parseFloat(l.longShortRatio).toFixed(3)+' (多'+l.longAccount+'%/空'+l.shortAccount+'%)\n'; }
-      if (d.topPos && d.topPos.length) { var l=d.topPos[d.topPos.length-1]; s += '大户持仓多空比: '+parseFloat(l.longShortRatio).toFixed(3)+' (多'+l.longAccount+'%/空'+l.shortAccount+'%)\n'; }
-      if (d.globalLS && d.globalLS.length) { var l=d.globalLS[d.globalLS.length-1]; s += '多空人数比: '+parseFloat(l.longShortRatio).toFixed(3)+' (多'+l.longAccount+'%/空'+l.shortAccount+'%)\n'; }
-      if (d.taker && d.taker.length) { var l=d.taker[d.taker.length-1]; s += '主动买卖比: '+parseFloat(l.buySellRatio).toFixed(3)+' (买'+parseFloat(l.buyVol).toFixed(0)+'/卖'+parseFloat(l.sellVol).toFixed(0)+')\n'; }
-      if (d.basis && d.basis.length) { var l=d.basis[d.basis.length-1]; s += '基差率: '+(parseFloat(l.basisRate)*100).toFixed(4)+'% (合约$'+parseFloat(l.futuresPrice).toFixed(2)+'/指数$'+parseFloat(l.indexPrice).toFixed(2)+')\n'; }
-      try {
-        var resp = await fetch('/api/ai/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: '请根据以下'+_lsSymbol+'合约的实时多空博弈数据，给出专业分析：\n'+s+'\n要求：1)分析多空力量对比 2)识别异常信号 3)给出短线操作建议 4)风险提示。用中文回答，简明扼要。'}) });
-        if (!resp.ok) {
-          el.innerHTML = '<span style="color:#f39c12">⚠️ AI 分析服务暂时不可用（HTTP ' + resp.status + '），请稍后重试</span>';
-          return;
+      var d = _lsRawData;
+      var signals = []; // each: {label, bull:bool}
+      var sections = [];
+
+      // 1. OI
+      if (d.oi && d.oi.length >= 2) {
+        var L = d.oi[d.oi.length-1], F = d.oi[0];
+        var oiVal = parseFloat(L.sumOpenInterestValue) / 1e6;
+        var oiChg = (parseFloat(L.sumOpenInterest) / parseFloat(F.sumOpenInterest) - 1) * 100;
+        var oiTxt, oiBull;
+        if (oiChg > 5) { oiTxt = '大幅增仓 (+' + oiChg.toFixed(2) + '%)，多方主动加码'; oiBull = true; }
+        else if (oiChg > 1) { oiTxt = '小幅增仓 (+' + oiChg.toFixed(2) + '%)，资金温和流入'; oiBull = true; }
+        else if (oiChg < -5) { oiTxt = '大幅减仓 (' + oiChg.toFixed(2) + '%)，资金加速离场'; oiBull = false; }
+        else if (oiChg < -1) { oiTxt = '小幅减仓 (' + oiChg.toFixed(2) + '%)，资金有所撤出'; oiBull = false; }
+        else { oiTxt = '持仓变化不大 (' + (oiChg >= 0 ? '+' : '') + oiChg.toFixed(2) + '%)，多空僵持'; oiBull = null; }
+        sections.push('<b>\u{1F538} 持仓量：</b>$' + oiVal.toFixed(1) + 'M — ' + oiTxt);
+        if (oiBull !== null) signals.push({ label: 'OI', bull: oiBull });
+      }
+
+      // 2. Top account L/S
+      if (d.topAcc && d.topAcc.length) {
+        var l = d.topAcc[d.topAcc.length-1];
+        var r = parseFloat(l.longShortRatio);
+        var txt = _lsJudge(r, '大户账户');
+        sections.push('<b>\u{1F538} 大户账户多空比：</b>' + r.toFixed(3) + ' (多' + (parseFloat(l.longAccount)*100).toFixed(1) + '% / 空' + (parseFloat(l.shortAccount)*100).toFixed(1) + '%) — ' + txt.text);
+        if (txt.bull !== null) signals.push({ label: '大户账户', bull: txt.bull });
+      }
+
+      // 3. Top position L/S
+      if (d.topPos && d.topPos.length) {
+        var l = d.topPos[d.topPos.length-1];
+        var r = parseFloat(l.longShortRatio);
+        var txt = _lsJudge(r, '大户持仓');
+        sections.push('<b>\u{1F538} 大户持仓多空比：</b>' + r.toFixed(3) + ' (多' + (parseFloat(l.longAccount)*100).toFixed(1) + '% / 空' + (parseFloat(l.shortAccount)*100).toFixed(1) + '%) — ' + txt.text);
+        if (txt.bull !== null) signals.push({ label: '大户持仓', bull: txt.bull });
+      }
+
+      // 4. Global L/S (retail)
+      if (d.globalLS && d.globalLS.length) {
+        var l = d.globalLS[d.globalLS.length-1];
+        var r = parseFloat(l.longShortRatio);
+        var txt = _lsJudge(r, '散户');
+        sections.push('<b>\u{1F538} 散户多空人数比：</b>' + r.toFixed(3) + ' (多' + (parseFloat(l.longAccount)*100).toFixed(1) + '% / 空' + (parseFloat(l.shortAccount)*100).toFixed(1) + '%) — ' + txt.text);
+        if (txt.bull !== null) signals.push({ label: '散户情绪', bull: txt.bull });
+      }
+
+      // 5. Taker buy/sell
+      if (d.taker && d.taker.length) {
+        var l = d.taker[d.taker.length-1];
+        var r = parseFloat(l.buySellRatio);
+        var buyVol = parseFloat(l.buyVol), sellVol = parseFloat(l.sellVol);
+        var tTxt, tBull;
+        if (r > 1.2) { tTxt = '主动买入力量明显占优'; tBull = true; }
+        else if (r > 1.0) { tTxt = '买方略占上风'; tBull = true; }
+        else if (r < 0.8) { tTxt = '主动卖出力量明显占优'; tBull = false; }
+        else if (r < 1.0) { tTxt = '卖方略占上风'; tBull = false; }
+        else { tTxt = '买卖力量均衡'; tBull = null; }
+        sections.push('<b>\u{1F538} 资金流向：</b>买卖比 ' + r.toFixed(3) + ' (买 ' + (buyVol/1e6).toFixed(1) + 'M / 卖 ' + (sellVol/1e6).toFixed(1) + 'M) — ' + tTxt);
+        if (tBull !== null) signals.push({ label: '资金流', bull: tBull });
+      }
+
+      // 6. Basis
+      if (d.basis && d.basis.length) {
+        var l = d.basis[d.basis.length-1];
+        var br = parseFloat(l.basisRate) * 100;
+        var bTxt, bBull;
+        if (br > 0.1) { bTxt = '升水 — 合约溢价，市场偏乐观'; bBull = true; }
+        else if (br < -0.1) { bTxt = '贴水 — 合约折价，市场偏悲观'; bBull = false; }
+        else { bTxt = '基差中性，多空预期平衡'; bBull = null; }
+        sections.push('<b>\u{1F538} 基差：</b>' + br.toFixed(4) + '% (合约 $' + parseFloat(l.futuresPrice).toFixed(2) + ' / 指数 $' + parseFloat(l.indexPrice).toFixed(2) + ') — ' + bTxt);
+        if (bBull !== null) signals.push({ label: '基差', bull: bBull });
+      }
+
+      // Summary
+      var bullCount = signals.filter(function(s){ return s.bull; }).length;
+      var bearCount = signals.filter(function(s){ return !s.bull; }).length;
+      var total = signals.length;
+      var verdict, verdictColor;
+      if (total === 0) { verdict = '数据不足，无法判断'; verdictColor = '#888'; }
+      else if (bullCount >= 3 && bullCount > bearCount) { verdict = '整体偏多 (' + bullCount + '/' + total + ' 项看多信号)，多方暂占优势'; verdictColor = _C.green; }
+      else if (bearCount >= 3 && bearCount > bullCount) { verdict = '整体偏空 (' + bearCount + '/' + total + ' 项看空信号)，空方暂占优势'; verdictColor = _C.red; }
+      else { verdict = '多空交织 (多' + bullCount + ' / 空' + bearCount + ')，方向不明'; verdictColor = '#f39c12'; }
+
+      var html = '<div style="line-height:1.8;font-size:0.9rem;">';
+      html += '<div style="font-weight:bold;margin-bottom:10px;font-size:1rem;">\u{1F4CA} ' + _lsSymbol + ' 多空博弈综合分析</div>';
+      if (sections.length === 0) {
+        html += '<div style="color:#888;">该币种暂无足够数据生成分析</div>';
+      } else {
+        for (var i = 0; i < sections.length; i++) {
+          html += '<div style="margin-bottom:6px;">' + sections[i] + '</div>';
         }
-        var result = await resp.json();
-        if (result.error) {
-          el.innerHTML = '<span style="color:#f39c12">⚠️ ' + (result.reply || 'AI 分析服务暂时不可用') + '</span>';
-          return;
-        }
-        el.innerHTML = result.reply || '<span style="color:' + _C.red + '">分析生成失败</span>';
-      } catch(e) { el.innerHTML = '<span style="color:' + _C.red + '">AI 服务连接失败</span>'; }
+        html += '<div style="margin-top:12px;padding:10px;background:rgba(41,98,255,0.06);border:1px solid rgba(41,98,255,0.15);border-radius:6px;">';
+        html += '<b>\u{1F4CB} 综合判断：</b><span style="color:' + verdictColor + ';font-weight:600;">' + verdict + '</span>';
+        html += '<br><span style="color:#888;font-size:0.8rem;">\u26A0\uFE0F 以上为数据模板分析，仅供参考，不构成投资建议</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    function _lsJudge(ratio, label) {
+      if (ratio > 1.2) return { text: label + '明显偏多', bull: true };
+      if (ratio > 1.0) return { text: label + '轻微偏多', bull: true };
+      if (ratio < 0.8) return { text: label + '明显偏空', bull: false };
+      if (ratio < 1.0) return { text: label + '轻微偏空', bull: false };
+      return { text: label + '多空均衡', bull: null };
     }
   </script>
 
