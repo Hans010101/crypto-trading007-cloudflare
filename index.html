@@ -2087,25 +2087,36 @@
         const sorted = [...allData].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
         const symbols = sorted.map(t => _normSym(t.symbol));
         const BATCH = 45;
+        var batchNum = 0;
         for (let i = 0; i < symbols.length; i += BATCH * 2) {
           const batch1 = symbols.slice(i, i + BATCH);
           const batch2 = symbols.slice(i + BATCH, i + BATCH * 2);
           const promises = [];
           if (batch1.length) promises.push(
             fetch('/api/binance/ls?symbols=' + batch1.join(','))
-              .then(r => r.json()).then(d => { if (d && typeof d === 'object' && !d.error) Object.assign(lsGlobalCache, d); })
-              .catch(() => {})
+              .then(r => r.json()).then(d => {
+                var keys = d && typeof d === 'object' ? Object.keys(d) : [];
+                console.log('[LS] batch', batchNum, 'a: got', keys.length, 'symbols', keys.length > 0 ? 'sample: ' + keys[0] + '=' + JSON.stringify(d[keys[0]]) : '(empty)', d && d.error ? 'ERROR:' + d.error : '');
+                if (d && typeof d === 'object' && !d.error) Object.assign(lsGlobalCache, d);
+              })
+              .catch(e => { console.warn('[LS] batch', batchNum, 'a FAILED:', e.message); })
           );
           if (batch2.length) promises.push(
             fetch('/api/binance/ls?symbols=' + batch2.join(','))
-              .then(r => r.json()).then(d => { if (d && typeof d === 'object' && !d.error) Object.assign(lsGlobalCache, d); })
-              .catch(() => {})
+              .then(r => r.json()).then(d => {
+                var keys = d && typeof d === 'object' ? Object.keys(d) : [];
+                console.log('[LS] batch', batchNum, 'b: got', keys.length, 'symbols', keys.length > 0 ? 'sample: ' + keys[0] + '=' + JSON.stringify(d[keys[0]]) : '(empty)', d && d.error ? 'ERROR:' + d.error : '');
+                if (d && typeof d === 'object' && !d.error) Object.assign(lsGlobalCache, d);
+              })
+              .catch(e => { console.warn('[LS] batch', batchNum, 'b FAILED:', e.message); })
           );
+          batchNum++;
           await Promise.all(promises);
           mergeGlobalCaches(allTickersData);
           renderTickers();
         }
-        console.log('[LS] Done: loaded', Object.keys(lsGlobalCache).length, 'symbols');
+        console.log('[LS] Done: loaded', Object.keys(lsGlobalCache).length, 'symbols',
+          Object.keys(lsGlobalCache).length > 0 ? '| first value: ' + JSON.stringify(lsGlobalCache[Object.keys(lsGlobalCache)[0]]) : '| CACHE IS EMPTY');
       } finally { lsLoading = false; }
     }
 
